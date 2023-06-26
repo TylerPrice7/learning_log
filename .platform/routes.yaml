@@ -1,9 +1,10 @@
 # Each route describes how an incoming URL will be processed by Platform.sh.
 
-"http://{defualt}/":
+"http://{default}/":
     type: upstream
     upstream: "ll_project:http"
 
 "http://www.{default}/":
     type: redirect
     to: "http://{default}/"
+
