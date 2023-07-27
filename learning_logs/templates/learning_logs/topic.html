@@ -1,21 +1,25 @@
 {% extends 'learning_logs/base.html' %}
+{% load django_bootstrap5 %}
 
 {% block page_header %}
-  <h1>{{ topic.text }}</h1>
+  <h1>{{ topic.text }}</h1> 
 {% endblock page_header %}
 
 {% block content %}
+  {% if topic.owner == request.user %}
   <p>
     <a href="{% url 'learning_logs:new_entry' topic.id %}">Add a new entry:</a>
   </p>
-
+  {% endif %}
   {% for entry in entries %}
     <div class="card mb-3">
         <!-- Card header with timestamp and edit link -->
         <h4 class="card-header">
           {{ entry.date_added|date:'M d, Y H:i' }}
-          <small><a href="{% url 'learning_logs:edit_entry' entry.id %}">
-            edit entry</a></small>
+          {% if topic.owner == request.user %}
+             <small><a href="{% url 'learning_logs:edit_entry' entry.id %}">
+              edit entry</a></small>
+          {% endif %}
         </h4>
         <!-- Card body with entry text -->
         <div class="card-body">{{ entry.text|linebreaks }}</div>
@@ -25,4 +29,9 @@
   {% endfor %}
   </ul>
 
+  <form action="{% url 'learning_logs:topic' topic.id %}" method='post'>
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% bootstrap_button button_type="submit" content="Save" %}
+  </form>
 {% endblock content %}

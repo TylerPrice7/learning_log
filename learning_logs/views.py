@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 
 from .models import Topic, Entry
-from .forms import TopicForm, EntryForm
+from .forms import TopicForm, EntryForm, PublicForm
 
 def check_topic_owner(topic, request):
     """Only allows the owner of the topic to view its contents."""
@@ -14,11 +14,21 @@ def index(request):
     """The home page for Learning Log."""
     return render(request, 'learning_logs/index.html')
 
-@login_required
 def topics(request):
     """The page for showing all topics."""
-    topics = Topic.objects.filter(owner=request.user).order_by('date_added')
-    context = {'topics': topics}
+    if request.user.is_authenticated:
+        topics = Topic.objects.filter(owner=request.user).order_by('date_added')
+        # Receive all topics that are public not made by current user.
+        public_topics = (Topic.objects
+            .filter(public=True)
+            #.exclude(owner=request.user)
+            .order_by('date_added'))
+    else:
+        # User is not logged in. Return only public topics.
+        topics = None
+        public_topics = Topic.objects.filter(public=True).order_by('date_added')
+
+    context = {'topics': topics, 'public_topics': public_topics}
     return render(request, 'learning_logs/topics.html', context)
 
 def topic(request, topic_id):
@@ -27,8 +37,18 @@ def topic(request, topic_id):
     if (not topic.public):
         check_topic_owner(topic, request)
     
+    if request.method != 'POST':
+        form = PublicForm(instance=topic)
+    else:
+        form = PublicForm(instance=topic, data=request.POST)
+        if topic.public:
+            topic.public = False
+        else:
+            topic.public = True
+        form.save()
+
     entries = topic.entry_set.order_by('-date_added')
-    context = {'topic': topic, 'entries': entries}
+    context = {'topic': topic, 'entries': entries, 'form': form}
     return render(request, 'learning_logs/topic.html', context)
 
 @login_required
